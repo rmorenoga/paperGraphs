@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import seaborn as sns
 import json
+import math
 import re
 import csv
 import scipy.stats as scp_stats
@@ -42,7 +43,8 @@ def minGenerationCount(mainFolder,folder,rep):
 #tp: the type of graph 'evol','nModules','brokenConn'
 #rep: number of repetitions
 #indiv: boolean plot individual graphs or all in the same
-def plotResultGraphs(mainFolder,folders,tp,rep,indiv):
+#saveFile: name of the file in which the graph is saved
+def plotResultGraphs(mainFolder,folders,tp,rep,indiv,saveFile):
     logCol = 1
     file ='evolution'
     if(tp=='evol'):
@@ -97,7 +99,7 @@ def plotResultGraphs(mainFolder,folders,tp,rep,indiv):
         else:
             ax1.plot(x,q3, color='k', linestyle='--',label='_nolegend_')
         ax1.plot(x,q1, color='k', linestyle='--',label='_nolegend_')
-        ax1.fill_between(x, q1, q3, alpha=0.5)
+        #ax1.fill_between(x, q1, q3, alpha=0.5)
         
         #plt.axhline(y=0.3, color='k', linestyle='-.')
         if(tp=='evol'):
@@ -112,7 +114,98 @@ def plotResultGraphs(mainFolder,folders,tp,rep,indiv):
         #ax1.set_xticklabels(['0','3000','6000','9000'])
         ax1.set_xlabel('Generations')
         ax1.set_ylabel('Fitness')
+        if(indiv):
+        	plt.savefig(saveFile+folders[k]+'xL'+tp+'plot.eps',bbox_inches="tight")
+    if(not indiv):
+    	plt.savefig(saveFile+'xL'+tp+'plot.eps',bbox_inches="tight")
+    plt.show()
+
+#mainFolder: main folder containing experiment folders
+#folder: array of folder headers
+#tp: the type of graph 'evol','nModules','brokenConn'
+#rep: number of repetitions
+#indiv: boolean plot individual graphs or all in the same
+#nEval: number of evaluations
+#saveFile: name of the file in which the graph is saved
+def plotResultGraphsEval(mainFolder,folders,tp,rep,indiv,nEval,saveFile):
+    logCol = 1
+    file ='evolution'
+    if(tp=='evol'):
+        logCol = 1
+        file = 'evolution'
+    elif (tp=='nModules'):
+        logCol = 2
+        file = 'bestFeatures'
+    elif (tp=='brokenConn'):
+        logCol = 11
+        file = 'meanFeatures'
+    
+    if(not indiv):
+        fig = plt.figure(figsize=(15,10))
+        ax1 = fig.gca()
+        
+    for k in range(0,len(folders)):
+        if(indiv):
+            fig = plt.figure()
+            ax1 = fig.gca()
+        df = pd.DataFrame(columns=range(0,nEval))
+        
+        evolBest = []
+        
+        for i in range(0,rep):
+            evolBest.clear()
+            csv_file = open('./'+mainFolder+'/'+folders[k]+'xL/'+str(i+1)+'/log/'+file+'.txt')
+            #csv_file = open('./filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/bestFeatures.txt')
+            #csv_file = open('/content/drive/My Drive/2019/Papers/Base Length/filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/evolution.txt')
+            csv_reader = csv.reader(csv_file,delimiter='-')
+            rows = list(csv_reader)
+            evaluationsPerGen = math.floor(nEval/len(rows))
+            #print(evaluationsPerGen,len(rows))
+            line_count = 0
+            for row in rows:
+            	value = float(row[logCol])
+            	for l in range(0,evaluationsPerGen):
+            		evolBest.append(value)
+            #print(len(evolBest))
+            if(len(evolBest)<nEval):
+            	diff = nEval - len(evolBest)
+            	for l in range(0,diff):
+            		evolBest.append(value)
+            #print(len(evolBest))
+            df.loc[i] = evolBest[:]
+
+        #ax1.plot(df.min(),label='Best')
+        #ax1.plot(df.max(),label='Worst')
+        x = range(nEval)
+        q3 = df.quantile(0.75)
+        q1 = df.quantile(0.25)
+
+        ax1.plot(x,df.median(),label='Median'+folders[k])
+        if(indiv):
+            ax1.plot(x,q3, color='k', linestyle='--',label='IQR')
+        else:
+            ax1.plot(x,q3, color='k', linestyle='--',label='_nolegend_')
+        ax1.plot(x,q1, color='k', linestyle='--',label='_nolegend_')
+        ax1.fill_between(x, q1, q3, alpha=0.5)
+        
+        #plt.axhline(y=0.3, color='k', linestyle='-.')
+        if(tp=='evol'):
+            ax1.set_ylim(-0.1,6)
+        elif(tp=='nModules'):
+            ax1.set_ylim(-0.1,20)
+        elif(tp=='brokenConn'):
+            ax1.set_ylim(-0.1,4)
+        ax1.legend()
+        ax1.set_title('Length x'+folders[k])
+        #ax1.set_xticks([0,100,200,300])
+        #ax1.set_xticklabels(['0','3000','6000','9000'])
+        ax1.set_xlabel('Fitness Evaluations')
+        ax1.set_ylabel('Fitness')
         #plt.savefig('CPGGenDEOne.eps',bbox_inches="tight")
+        if(indiv):
+        	plt.savefig('./individualGraphs/'+saveFile+folders[k]+'xL'+tp+'plot.eps',bbox_inches="tight")
+    if(not indiv):
+    	plt.savefig(saveFile+tp+'plot.png',bbox_inches="tight")
     plt.show()
     
     
@@ -123,7 +216,8 @@ def plotResultGraphs(mainFolder,folders,tp,rep,indiv):
 #indiv: boolean plot individual graphs or all in the same 
 #lastGen: plot only lastGen data or all data
 #plotType: type of data plot (box,swarm,strip,violin)
-def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType):
+#saveFile: name of the file in which the graph is saved
+def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile):
     logCol = 1
     file ='evolution'
     if(tp=='evol'):
@@ -138,6 +232,10 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType):
         logCol = 11
         file = 'meanFeatures'
         variable = 'brokenConn'
+    elif (tp=='nConn'):
+        logCol = 19
+        file = 'bestFeatures'
+        variable = 'nConn'
         
     #dfAll = pd.DataFrame(columns=folders)
     dfAll = pd.DataFrame()
@@ -153,7 +251,7 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType):
         if(indiv):
             fig = plt.figure()
             ax1 = fig.gca()
-        nGenerations = minGenerationCount(mainFolder,folders[k],rep)
+        #nGenerations = minGenerationCount(mainFolder,folders[k],rep)
         data.clear()
         
         for i in range(0,rep):
@@ -163,15 +261,15 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType):
             #print(rows)
             #print(nGenerations)
             if(lastGen):
-                data.append(float(rows[nGenerations-1][logCol]))
+                data.append(float(rows[-1][logCol]))
             else:
                 line_count = 0
                 for row in rows:
                     #print(row[logCol])
                     data.append(float(row[logCol]))
                     line_count =line_count + 1
-                    if line_count >= nGenerations:
-                        break
+                    #if line_count >= nGenerations:
+                    #    break
                         
         dfPartial = pd.DataFrame(data,columns=[variable])
         dfPartial['Length'] = folders[k]
@@ -189,6 +287,7 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType):
     y = variable
     order = folders
     if(plotType=='box'):
+        #ax = sns.boxplot(data=dfAll, x=x, y=y,order=order,showfliers=False)
         ax = sns.boxplot(data=dfAll, x=x, y=y,order=order)
     elif(plotType=='swarm'):
         ax = sns.swarmplot(data=dfAll, x=x, y=y,order=order)
@@ -198,8 +297,9 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType):
         ax = sns.violinplot(data=dfAll, x=x, y=y,order=order)
     
     if(tp!='brokenConn'):
-        add_stat_annotation(ax, data=dfAll, x=x, y=y, order=order, box_pairs=[("1_75","1_5")], test='Mann-Whitney', text_format='star', loc='outside',verbose=2)
+        add_stat_annotation(ax, data=dfAll, x=x, y=y, order=order, box_pairs=[("2","4")], test='Mann-Whitney', text_format='star', loc='outside',verbose=2)
     
+    plt.savefig(saveFile+tp+plotType+'.eps',bbox_inches="tight")
     plt.show()
     print(scp_stats.kruskal(*[group[variable].values for name,group in dfAll.groupby('Length')]))
     
@@ -246,7 +346,7 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
     for l in range(0,len(mainFolders)):
         dfBase = pd.DataFrame()
         for k in range(0,len(folders)):
-            nGenerations = minGenerationCount(mainFolders[l],folders[k],rep)
+            #nGenerations = minGenerationCount(mainFolders[l],folders[k],rep)
             data.clear()
         
             for i in range(0,rep):
@@ -256,15 +356,15 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
                 #print(rows)
                 #print(nGenerations)
                 if(lastGen):
-                    data.append(float(rows[nGenerations-1][logCol]))
+                    data.append(float(rows[-1][logCol]))
                 else:
                     line_count = 0
                     for row in rows:
                         #print(row[logCol])
                         data.append(float(row[logCol]))
                         line_count =line_count + 1
-                        if line_count >= nGenerations:
-                            break
+                        #if line_count >= nGenerations:
+                        #    break
 
             dfPartial = pd.DataFrame(data,columns=[variable])
             dfPartial['Length'] = folders[k]
@@ -337,10 +437,11 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
 #tp: the type of graph 'evol','nModules','brokenConn'
 #rep: number of repetitions
 #indiv: boolean plot individual graphs or all in the same
-def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv):
-    logColX = 16
-    logColY = 17
-    logColZ = 18
+#nEval: number of evaluations
+def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv,nEval):
+    logColX = 13
+    logColY = 14
+    logColZ = 15
     file ='bestFeatures'
     
     
@@ -352,10 +453,9 @@ def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv):
         if(indiv):
             fig = plt.figure()
             ax1 = fig.gca()
-        nGenerations = minGenerationCount(mainFolder,folders[k],rep)
-        dfX = pd.DataFrame(columns=range(0,nGenerations))
-        dfY = pd.DataFrame(columns=range(0,nGenerations))
-        dfZ = pd.DataFrame(columns=range(0,nGenerations))
+        dfX = pd.DataFrame(columns=range(0,nEval))
+        dfY = pd.DataFrame(columns=range(0,nEval))
+        dfZ = pd.DataFrame(columns=range(0,nEval))
         
         evolBestX = []
         evolBestY = []
@@ -369,24 +469,30 @@ def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv):
             #csv_file = open('./filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/bestFeatures.txt')
             #csv_file = open('/content/drive/My Drive/2019/Papers/Base Length/filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/evolution.txt')
             csv_reader = csv.reader(csv_file,delimiter='-')
+            rows = list(csv_reader)
+            evaluationsPerGen = math.floor(nEval/len(rows))
             line_count = 0
-            for row in csv_reader:
-                evolBestX.append(float(row[logColX]))
-                evolBestY.append(float(row[logColY]))
-                evolBestZ.append(float(row[logColZ]))
-                #evolBest.append(float(row[2]))
-                line_count =line_count + 1
-                #print(line_count)
-                #print(evolBest)
-                if line_count >= nGenerations:
-                    break
+            for row in rows:
+            	valueX = float(row[logColX])
+            	valueY = float(row[logColY])
+            	valueZ = float(row[logColZ])
+            	for l in range(0,evaluationsPerGen):
+                	evolBestX.append(valueX)
+                	evolBestY.append(valueY)
+                	evolBestZ.append(valueZ)
+            if(len(evolBestX)<nEval):
+            	diff = nEval - len(evolBestX)
+            	for l in range(0,diff):
+            		evolBestX.append(valueX)
+            		evolBestY.append(valueY)
+            		evolBestZ.append(valueZ)
             dfX.loc[i] = evolBestX[:]
             dfY.loc[i] = evolBestY[:]
             dfZ.loc[i] = evolBestZ[:]
 
         #ax1.plot(df.min(),label='Best')
         #ax1.plot(df.max(),label='Worst')
-        x = range(nGenerations)
+        x = range(nEval)
         q3X = dfX.quantile(0.75)
         q1X = dfX.quantile(0.25)
 
@@ -416,7 +522,7 @@ def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv):
         
         #plt.axhline(y=0.3, color='k', linestyle='-.')
         if(tp=='evol'):
-            ax1.set_ylim(-0.1,0.4)
+            ax1.set_ylim(-0.1,1.5)
         elif(tp=='nModules'):
             ax1.set_ylim(-0.1,20)
         elif(tp=='brokenConn'):
@@ -425,7 +531,7 @@ def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv):
         ax1.set_title('Length x'+folders[k])
         #ax1.set_xticks([0,100,200,300])
         #ax1.set_xticklabels(['0','3000','6000','9000'])
-        ax1.set_xlabel('Generations')
+        ax1.set_xlabel('Fitness Evaluations')
         ax1.set_ylabel('Fitness')
         #plt.savefig('CPGGenDEOne.eps',bbox_inches="tight")
     plt.show()
