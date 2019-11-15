@@ -11,7 +11,7 @@ import scikit_posthocs as sp
 from statannot import add_stat_annotation
 
 #plt.rc('text', usetex=True)
-#plt.rc('font', family='serif',size ='16')
+plt.rc('font', family='serif',size ='30')
 pd.options.display.max_rows = 4000
 #matplotlib.rcParams['ps.useafm'] = True
 #matplotlib.rcParams['text.usetex'] = True
@@ -24,11 +24,14 @@ def minGenerationCount(mainFolder,folder,rep):
     genCount= []
     for i in range(0,rep):
         csv_file = open('./'+mainFolder+'/'+folder+'xL/'+str(i+1)+'/log/evolution.txt')
-        csv_reader = csv.reader(csv_file,delimiter='-')
+        csv_reader = csv.reader(csv_file)
+        oldRows = list(csv_reader)
+        rows = []
+        for row in oldRows:
+            rows.append(row[0].split(" - "))
         #line_count = 0
         #for row in csv_reader:
         #    line_count = line_count + 1
-        rows = list(csv_reader)
         line_count = len(rows)
         genCount.append(line_count)
         #print(line_count)
@@ -75,9 +78,13 @@ def plotResultGraphs(mainFolder,folders,tp,rep,indiv,saveFile):
             csv_file = open('./'+mainFolder+'/'+folders[k]+'xL/'+str(i+1)+'/log/'+file+'.txt')
             #csv_file = open('./filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/bestFeatures.txt')
             #csv_file = open('/content/drive/My Drive/2019/Papers/Base Length/filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/evolution.txt')
-            csv_reader = csv.reader(csv_file,delimiter='-')
+            csv_reader = csv.reader(csv_file)
+            oldRows = list(csv_reader)
+            rows = []
+            for row in oldRows:
+            	rows.append(row[0].split(" - "))
             line_count = 0
-            for row in csv_reader:
+            for row in rows:
                 evolBest.append(float(row[logCol]))
                 #evolBest.append(float(row[2]))
                 line_count =line_count + 1
@@ -93,7 +100,7 @@ def plotResultGraphs(mainFolder,folders,tp,rep,indiv,saveFile):
         q3 = df.quantile(0.75)
         q1 = df.quantile(0.25)
 
-        ax1.plot(x,df.median(),label='Median'+folders[k])
+        ax1.plot(x,df.median(),label=folders[k]+'xL')
         if(indiv):
             ax1.plot(x,q3, color='k', linestyle='--',label='IQR')
         else:
@@ -157,8 +164,11 @@ def plotResultGraphsEval(mainFolder,folders,tp,rep,indiv,nEval,saveFile):
             csv_file = open('./'+mainFolder+'/'+folders[k]+'xL/'+str(i+1)+'/log/'+file+'.txt')
             #csv_file = open('./filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/bestFeatures.txt')
             #csv_file = open('/content/drive/My Drive/2019/Papers/Base Length/filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/evolution.txt')
-            csv_reader = csv.reader(csv_file,delimiter='-')
-            rows = list(csv_reader)
+            csv_reader = csv.reader(csv_file)
+            oldRows = list(csv_reader)
+            rows = []
+            for row in oldRows:
+            	rows.append(row[0].split(" - "))
             evaluationsPerGen = math.floor(nEval/len(rows))
             #print(evaluationsPerGen,len(rows))
             line_count = 0
@@ -180,7 +190,7 @@ def plotResultGraphsEval(mainFolder,folders,tp,rep,indiv,nEval,saveFile):
         q3 = df.quantile(0.75)
         q1 = df.quantile(0.25)
 
-        ax1.plot(x,df.median(),label='Median'+folders[k])
+        ax1.plot(x,df.median(),label=folders[k]+'xL')
         if(indiv):
             ax1.plot(x,q3, color='k', linestyle='--',label='IQR')
         else:
@@ -196,7 +206,7 @@ def plotResultGraphsEval(mainFolder,folders,tp,rep,indiv,nEval,saveFile):
         elif(tp=='brokenConn'):
             ax1.set_ylim(-0.1,4)
         ax1.legend()
-        ax1.set_title('Length x'+folders[k])
+        #ax1.set_title('Length x'+folders[k])
         #ax1.set_xticks([0,100,200,300])
         #ax1.set_xticklabels(['0','3000','6000','9000'])
         ax1.set_xlabel('Fitness Evaluations')
@@ -217,7 +227,8 @@ def plotResultGraphsEval(mainFolder,folders,tp,rep,indiv,nEval,saveFile):
 #lastGen: plot only lastGen data or all data
 #plotType: type of data plot (box,swarm,strip,violin)
 #saveFile: name of the file in which the graph is saved
-def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile):
+#annotatePairs: Annotate pairs for posthoc analysis
+def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile,annotatePairs):
     logCol = 1
     file ='evolution'
     if(tp=='evol'):
@@ -227,15 +238,15 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile):
     elif (tp=='nModules'):
         logCol = 2
         file = 'bestFeatures'
-        variable = 'nModules'
+        variable = 'Number of Modules'
     elif (tp=='brokenConn'):
         logCol = 11
         file = 'meanFeatures'
-        variable = 'brokenConn'
+        variable = 'Number of Broken Connections'
     elif (tp=='nConn'):
         logCol = 19
         file = 'bestFeatures'
-        variable = 'nConn'
+        variable = 'Average Connections per Module'
         
     #dfAll = pd.DataFrame(columns=folders)
     dfAll = pd.DataFrame()
@@ -256,12 +267,16 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile):
         
         for i in range(0,rep):
             csv_file = open('./'+mainFolder+'/'+folders[k]+'xL/'+str(i+1)+'/log/'+file+'.txt')
-            csv_reader = csv.reader(csv_file,delimiter='-')
-            rows = list(csv_reader)
+            csv_reader = csv.reader(csv_file)
+            oldRows = list(csv_reader)
+            rows = []
+            for row in oldRows:
+            	rows.append(row[0].split(" - "))
+            	#print(row)
             #print(rows)
             #print(nGenerations)
             if(lastGen):
-                data.append(float(rows[-1][logCol]))
+            	data.append(float(rows[-1][logCol]))
             else:
                 line_count = 0
                 for row in rows:
@@ -297,7 +312,7 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile):
         ax = sns.violinplot(data=dfAll, x=x, y=y,order=order)
     
     if(tp!='brokenConn'):
-        add_stat_annotation(ax, data=dfAll, x=x, y=y, order=order, box_pairs=[("2","4")], test='Mann-Whitney', text_format='star', loc='outside',verbose=2)
+        add_stat_annotation(ax, data=dfAll, x=x, y=y, order=order, box_pairs=annotatePairs, test='Mann-Whitney', text_format='star', loc='outside',verbose=2)
     
     plt.savefig(saveFile+tp+plotType+'.eps',bbox_inches="tight")
     plt.show()
@@ -321,7 +336,8 @@ def boxplotResults(mainFolder,folders,tp,rep,indiv,lastGen,plotType,saveFile):
 #rep: number of repetitions  
 #lastGen: plot only lastGen data or all data
 #plotType: type of data plot (box,swarm,strip,violin)
-def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
+#saveFile: the name of the save file the figure will be saved in
+def compareBases(mainFolders,folders,tp,rep,lastGen,plotType,saveFile):
     logCol = 1
     file ='evolution'
 
@@ -332,11 +348,15 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
     elif ((tp=='nModules') or (tp == 'nModulesBase')):
         logCol = 2
         file = 'bestFeatures'
-        variable = 'nModules'
+        variable = 'Number of Modules'
     elif ((tp=='brokenConn') or (tp == 'brokenConnBase')):
         logCol = 11
         file = 'meanFeatures'
-        variable = 'brokenConn'
+        variable = 'Number of Broken Connections'
+    elif ((tp=='nConn') or (tp =='nConnBase') ):
+        logCol = 19
+        file = 'bestFeatures'
+        variable = 'Average Connections per Module'
         
     dfAll = pd.DataFrame()
     data = []
@@ -351,9 +371,12 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
         
             for i in range(0,rep):
                 csv_file = open('./'+mainFolders[l]+'/'+folders[k]+'xL/'+str(i+1)+'/log/'+file+'.txt')
-                csv_reader = csv.reader(csv_file,delimiter='-')
-                rows = list(csv_reader)
-                #print(rows)
+                csv_reader = csv.reader(csv_file)
+                oldRows = list(csv_reader)
+                rows = []
+                for row in oldRows:
+                	rows.append(row[0].split(" - "))
+            	#print(rows)
                 #print(nGenerations)
                 if(lastGen):
                     data.append(float(rows[-1][logCol]))
@@ -380,13 +403,13 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
     #print(dfAll)
     
     #print([group['Fitness'].values for name,group in dfAll.groupby(['Length','Base'])])
-    if((tp!='nModulesBase') and (tp!='brokenConnBase') and (tp!='evolBase')):
+    if((tp!='nModulesBase') and (tp!='brokenConnBase') and (tp!='evolBase') and (tp!='nConnBase')):
         print(scp_stats.kruskal(*[group[variable].values for name,group in dfAll.groupby(['Length','Base'])]))
     else:
         print(scp_stats.kruskal(*[group[variable].values for name,group in dfAll.groupby(['Base'])]))
 
 
-    if((tp!='brokenConn') and (tp!='nModulesBase') and (tp!='brokenConnBase') and (tp!='evolBase')):
+    if((tp!='brokenConn') and (tp!='nModulesBase') and (tp!='brokenConnBase') and (tp!='evolBase') and (tp!='nConnBase')):
         #Connover
         postHoc = sp.posthoc_conover([group[variable].values for name,group in dfAll.groupby(['Length','Base'])])
         #print(postHoc)
@@ -402,10 +425,11 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
     y = variable
     
 
-    if((tp == 'nModulesBase') or (tp == 'brokenConnBase') or (tp == 'evolBase')):
+    if((tp == 'nModulesBase') or (tp == 'brokenConnBase') or (tp == 'evolBase') or (tp == 'nConnBase')):
         x = 'Base'
         order = mainFolders
         if(plotType=='box'):
+            #ax = sns.boxplot(data=dfAll, x=x, y=y,order=order,showfliers=False)
             ax = sns.boxplot(data=dfAll, x=x, y=y,order=order)
         elif(plotType=='swarm'):
             ax = sns.swarmplot(data=dfAll, x=x, y=y,order=order)
@@ -418,6 +442,7 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
         hue = "Base"
         order = folders
         if(plotType=='box'):
+            #ax = sns.boxplot(data=dfAll, x=x, y=y,order=order,hue = hue,showfliers=False)
             ax = sns.boxplot(data=dfAll, x=x, y=y,order=order,hue = hue)
         elif(plotType=='swarm'):
             ax = sns.swarmplot(data=dfAll, x=x, y=y,order=order,hue = hue)
@@ -428,8 +453,10 @@ def compareBases(mainFolders,folders,tp,rep,lastGen,plotType):
     
     
     #dfAll.boxplot(column='Fitness',by=['Length','Base'],ax=ax1,grid=False,notch=False)
-    if(tp=='evol'):
-            ax.set_ylim(-0.1,11)
+    #if(tp=='evol'):
+            #ax.set_ylim(-0.1,11)
+    plt.savefig(saveFile+tp+plotType+'.eps',bbox_inches="tight")
+    plt.show()
     
 
 #mainFolder: main folder containing experiment folders
@@ -468,8 +495,11 @@ def plotInertiaGraphs(mainFolder,folders,tp,rep,indiv,nEval):
             csv_file = open('./'+mainFolder+'/'+folders[k]+'xL/'+str(i+1)+'/log/'+file+'.txt')
             #csv_file = open('./filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/bestFeatures.txt')
             #csv_file = open('/content/drive/My Drive/2019/Papers/Base Length/filesFromLenghtExperiment/'+folders[k]+'xL/'+str(i+1)+'/log/evolution.txt')
-            csv_reader = csv.reader(csv_file,delimiter='-')
-            rows = list(csv_reader)
+            csv_reader = csv.reader(csv_file)
+            oldRows = list(csv_reader)
+            rows = []
+            for row in oldRows:
+            	rows.append(row[0].split(" - "))
             evaluationsPerGen = math.floor(nEval/len(rows))
             line_count = 0
             for row in rows:
